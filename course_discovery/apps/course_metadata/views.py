@@ -5,9 +5,11 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.views.generic import TemplateView, UpdateView, View
-from taxonomy.models import CourseSkills
 
-from course_discovery.apps.course_metadata.forms import CourseRunSelectionForm
+from taxonomy.models import BlacklistedCourseSkill, CourseSkills
+from taxonomy.utils import black_list_course_skill, remove_course_skill_from_black
+
+from course_discovery.apps.course_metadata.forms import CourseRunSelectionForm, ExcludeSkillsForm
 from course_discovery.apps.course_metadata.models import Course, Program
 
 
@@ -49,11 +51,13 @@ class CourseSkillsView(View):
     For displaying course skills of a particular course.
     """
     template = 'admin/course_metadata/course_skills.html'
+    form = ExcludeSkillsForm
 
     class ContextParameters:
         """
         Namespace-style class for custom context parameters.
         """
+        EXCLUDED_SKILLS = 'excluded_skills'
         COURSE_SKILLS = 'course_skills'
         COURSE = 'course'
 
@@ -76,9 +80,11 @@ class CourseSkillsView(View):
         """
         course = Course.objects.get(id=course_pk)
         course_skills = CourseSkills.objects.filter(course_id=course.key)
+        excluded_skills = BlacklistedCourseSkill.objects.filter(course_id=course.key)
         return {
             self.ContextParameters.COURSE: course,
-            self.ContextParameters.COURSE_SKILLS: course_skills
+            self.ContextParameters.COURSE_SKILLS: course_skills,
+            self.ContextParameters.EXCLUDED_SKILLS: excluded_skills,
         }
 
     def _build_context(self, request, course_pk):
@@ -102,4 +108,40 @@ class CourseSkillsView(View):
             django.http.response.HttpResponse: HttpResponse
         """
         context = self._build_context(request, course_pk)
+        context['exclude_skills_form'] = self.form(
+            context[self.ContextParameters.COURSE_SKILLS],
+            context[self.ContextParameters.EXCLUDED_SKILLS],
+        )
+
+        return render(request, self.template, context)
+
+    def post(self, request, course_pk):
+        """
+        Handle POST request - saves excluded/included skills.
+
+        Arguments:
+            request (django.http.request.HttpRequest): Request instance
+            course_pk (str): Primary key of the course
+
+        Returns:
+            django.http.response.HttpResponse: HttpResponse
+        """
+        course = Course.objects.get(id=course_pk)
+        course_skills = CourseSkills.objects.filter(course_id=course.key)
+        excluded_skills = BlacklistedCourseSkill.objects.filter(course_id=course.key)
+
+        form = self.form(course_skills, excluded_skills, data=request.POST)
+        if form.is_valid():
+            for skill_id in form.cleaned_data['exclude_skills']:
+                black_list_course_skill(course.key, skill_id)
+
+            for skill_id in form.cleaned_data['include_skills']:
+                remove_course_skill_from_black(course.key, skill_id)
+
+        context = self._build_context(request, course_pk)
+        context['exclude_skills_form'] = self.form(
+            context[self.ContextParameters.COURSE_SKILLS],
+            context[self.ContextParameters.EXCLUDED_SKILLS],
+        )
+
         return render(request, self.template, context)
