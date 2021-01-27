@@ -1,3 +1,4 @@
+import pytest
 import ddt
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -22,6 +23,6 @@ class TestHtmlValidator(TestCase):
     )
     @ddt.unpack
     def test_invalid_html(self, html, msg):
-        with self.assertRaises(ValidationError) as cm:
+        with pytest.raises(ValidationError):
             validate_html(html)
-        self.assertEqual(cm.exception.args[0], msg)
+        assert cm.exception.args[0] == msg
