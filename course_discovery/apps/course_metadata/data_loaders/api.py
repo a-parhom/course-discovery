@@ -157,7 +157,7 @@ class CoursesApiDataLoader(AbstractDataLoader):
         if latest_run and latest_run.type:
             defaults['type'] = latest_run.type
         else:
-            defaults['type'] = CourseRunType.objects.get(slug=CourseRunType.EMPTY)
+            defaults['type'] = CourseRunType.objects.get(slug=CourseRunType.HONOR)
 
         # Course will always be an official version. But if it _does_ have a draft version, the run should too.
         if course.draft_version:
