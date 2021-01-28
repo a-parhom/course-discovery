@@ -1435,7 +1435,8 @@ class CourseRun(DraftModelMixin, CachedMixin, TimeStampedModel):
 
     @property
     def image_url(self):
-        return self.course.image_url
+        #return self.course.image_url
+        return self.card_image_url
 
     @property
     def program_types(self):
