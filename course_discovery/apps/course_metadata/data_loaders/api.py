@@ -244,6 +244,7 @@ class CoursesApiDataLoader(AbstractDataLoader):
                 'video': self.get_courserun_video(body),
                 'status': CourseRunStatus.Published,
                 'mobile_available': body.get('mobile_available') or False,
+                'card_image_url': body['media'].get('image', {}).get('raw'),
             })
 
         if course:
