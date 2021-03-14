@@ -1,6 +1,5 @@
 from django.db import models
 from django.test import TestCase
-from haystack.query import SearchQuerySet
 
 from course_discovery.apps.core.utils import SearchQuerySetWrapper, delete_orphans, get_all_related_field_names
 from course_discovery.apps.course_metadata.models import CourseRun, Video

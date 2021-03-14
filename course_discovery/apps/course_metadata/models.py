@@ -1154,8 +1154,7 @@ class CourseEditor(TimeStampedModel):
         # foreign keys, that django will return duplicate rows if we aren't careful to ask it not to.
         return queryset.filter(user_can_edit, course__authoring_organizations__in=user_orgs).distinct()
 
-
-class CourseRun(DraftModelMixin, CachedMixin, TimeStampedModel):
+class CourseRun(DraftModelMixin, PkSearchableMixin, TimeStampedModel):
     """ CourseRun model. """
     OFAC_RESTRICTION_CHOICES = (
         ('', '--'),
@@ -1582,24 +1581,6 @@ class CourseRun(DraftModelMixin, CachedMixin, TimeStampedModel):
     @property
     def get_video(self):
         return self.video or self.course.video
-
-    @classmethod
-    def search(cls, query):
-        """ Queries the search index.
-        Args:
-            query (str) -- Elasticsearch querystring (e.g. `title:intro*`)
-        Returns:
-            SearchQuerySet
-        """
-        query = clean_query(query)
-        queryset = SearchQuerySet().models(cls)
-
-        if query == '(*)':
-            # Early-exit optimization. Wildcard searching is very expensive in elasticsearch. And since we just
-            # want everything, we don't need to actually query elasticsearch at all.
-            return queryset.load_all()
-
-        return queryset.raw_search(query).load_all()
 
     def __str__(self):
         return '{key}: {title}'.format(key=self.key, title=self.title)
